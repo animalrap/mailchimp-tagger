@@ -70,6 +70,49 @@ def normalize(name):
     return " ".join(name.strip().lower().split())
 
 
+def describe_request_error(e):
+    """Turn a requests exception into a specific, actionable message.
+    Used by both the CLI and the GUI so error text stays consistent
+    between the two."""
+    if isinstance(e, requests.exceptions.HTTPError):
+        status = e.response.status_code if e.response is not None else None
+        if status == 401:
+            return (
+                "Mailchimp rejected the API key (401 Unauthorized). "
+                "Double-check MAILCHIMP_API_KEY -- it may be wrong, revoked, "
+                "or copied with extra whitespace."
+            )
+        if status == 403:
+            return (
+                "Mailchimp denied access (403 Forbidden). The API key may not "
+                "have permission for this audience, or the account may be "
+                "paused/suspended."
+            )
+        if status == 404:
+            return (
+                "Mailchimp returned 404 Not Found. This usually means "
+                "MAILCHIMP_LIST_ID is wrong, or MAILCHIMP_SERVER doesn't match "
+                "the data center in your API key (the part after the '-', "
+                "e.g. 'us21')."
+            )
+        if status == 429:
+            return "Mailchimp is rate-limiting requests (429). Wait a bit and try again."
+        if status and 500 <= status < 600:
+            return f"Mailchimp is having server issues (HTTP {status}). Try again shortly."
+        return f"Mailchimp API error (HTTP {status}): {e}"
+    if isinstance(e, requests.exceptions.ConnectionError):
+        return (
+            "Could not connect to Mailchimp. Check your internet connection "
+            "and that MAILCHIMP_SERVER is correct (e.g. 'us21', not the full "
+            "API key)."
+        )
+    if isinstance(e, requests.exceptions.Timeout):
+        return "The request to Mailchimp timed out. Check your connection and try again."
+    if isinstance(e, requests.exceptions.RequestException):
+        return f"Network error talking to Mailchimp: {e}"
+    return str(e)
+
+
 def fetch_all_members(log=print):
     """Pull every audience member's name + email, handling pagination.
     Returns a dict of normalized name -> list of email addresses (a
@@ -235,13 +278,13 @@ def main():
         print(f"Error: {e}")
         sys.exit(1)
     except FileNotFoundError:
-        print(f"Error: CSV file not found: {csv_path}")
+        print(f"Error: CSV file not found: {args.csv_path}")
         sys.exit(1)
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
-    except requests.HTTPError as e:
-        print(f"Mailchimp API error: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {describe_request_error(e)}")
         sys.exit(1)
 
 

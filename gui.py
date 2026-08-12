@@ -147,7 +147,15 @@ class TaggerApp(tk.Tk):
     def _run_worker(self, csv_path, tag_name, dry_run):
         try:
             tagger.run_tagging(csv_path, tag_name, log=self.log_queue.put, dry_run=dry_run)
-        except Exception as e:  # surfaced to the user via the log pane
+        except EnvironmentError as e:
+            self.log_queue.put(f"Error: {e}")
+        except FileNotFoundError:
+            self.log_queue.put(f"Error: CSV file not found: {csv_path}")
+        except ValueError as e:
+            self.log_queue.put(f"Error: {e}")
+        except tagger.requests.exceptions.RequestException as e:
+            self.log_queue.put(f"Error: {tagger.describe_request_error(e)}")
+        except Exception as e:  # catch-all so the GUI never hangs silently
             self.log_queue.put(f"Error: {e}")
         finally:
             self.log_queue.put(None)  # sentinel: run complete
