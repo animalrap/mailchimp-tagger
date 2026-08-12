@@ -70,14 +70,17 @@ def normalize(name):
     return " ".join(name.strip().lower().split())
 
 
-def fetch_all_members():
+def fetch_all_members(log=print):
     """Pull every audience member's name + email, handling pagination.
     Returns a dict of normalized name -> list of email addresses (a
-    list because more than one contact can share a name)."""
+    list because more than one contact can share a name). `log` is
+    called after each page so callers can show progress on large
+    audiences."""
     _, _, list_id, base, auth = _get_config()
     members = {}
     offset = 0
     count = 1000
+    total_items = None
     while True:
         resp = requests.get(
             f"{base}/lists/{list_id}/members",
@@ -85,11 +88,14 @@ def fetch_all_members():
             params={
                 "count": count,
                 "offset": offset,
-                "fields": "members.email_address,members.merge_fields,members.status",
+                "fields": "total_items,members.email_address,members.merge_fields,members.status",
             },
         )
         resp.raise_for_status()
-        batch = resp.json()["members"]
+        payload = resp.json()
+        if total_items is None:
+            total_items = payload.get("total_items")
+        batch = payload["members"]
         if not batch:
             break
         for m in batch:
@@ -97,6 +103,11 @@ def fetch_all_members():
             key = normalize(full_name)
             members.setdefault(key, []).append(m["email_address"])
         offset += count
+        fetched = min(offset, total_items) if total_items is not None else offset
+        if total_items:
+            log(f"  Fetched {fetched} of {total_items} contacts...")
+        else:
+            log(f"  Fetched {fetched} contacts...")
     return members
 
 
@@ -148,7 +159,7 @@ def run_tagging(csv_path, tag_name, log=print, dry_run=False):
         return {"tagged": 0, "ambiguous": [], "unmatched": []}
 
     log(f"Fetching audience from Mailchimp (list {list_id})...")
-    members = fetch_all_members()
+    members = fetch_all_members(log=log)
     log(f"Loaded {len(members)} unique names from {sum(len(v) for v in members.values())} contacts.\n")
 
     matched_emails = []
