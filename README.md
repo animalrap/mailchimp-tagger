@@ -113,6 +113,22 @@ Windows:
 pip install pyinstaller
 pyinstaller --onefile --windowed --name "Banana Tagger" gui.py
 ```
+## Troubleshooting
+
+The tool gives a specific message for the most common setup mistakes,
+rather than a raw error dump:
+
+| Message | Likely cause |
+|---|---|
+| API key rejected (401) | `MAILCHIMP_API_KEY` is wrong, revoked, or was copied with extra whitespace |
+| Access denied (403) | The API key lacks permission for this audience, or the account is paused/suspended |
+| 404 Not Found | `MAILCHIMP_LIST_ID` is wrong, or `MAILCHIMP_SERVER` doesn't match the data center in your API key (the part after the `-`, e.g. `us21`) |
+| Rate-limited (429) | Wait a bit and try again |
+| Could not connect | Check your internet connection and that `MAILCHIMP_SERVER` is set correctly, not the full API key |
+
+If you're not sure your environment variables are set, run with
+`--dry-run` first, it exercises the same connection and matching logic
+without writing anything to Mailchimp.
 
 ## Limitations
 
