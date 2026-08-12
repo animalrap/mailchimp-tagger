@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="assets/logo.png" width="200" alt="Banana Tagger logo">
+</p>
 # Banana Tagger
 
 A command-line tool (with an optional GUI) for tagging Mailchimp
