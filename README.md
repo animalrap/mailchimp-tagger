@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/logo.png" width="200" alt="Banana Tagger logo">
-</p>
-
 # Banana Tagger
 
 A command-line tool (with an optional GUI) for tagging Mailchimp
@@ -98,6 +94,19 @@ python banana_tagger.py names.csv "Fall Classic 2026" --dry-run
 In the GUI, check the "Dry run" box before clicking Run, the button
 relabels to **Preview (Dry Run)** so it's clear nothing will be written.
 
+### Export results to a CSV
+
+Add `--export path.csv` to save a results file with one row per input
+name (`name`, `status`, `email`), where status is `tagged`, `ambiguous`,
+or `unmatched` (`would tag (dry run)` if combined with `--dry-run`):
+
+```bash
+python banana_tagger.py names.csv "Fall Classic 2026" --export results.csv
+```
+
+In the GUI, check "Export results to CSV" before clicking Run, you'll
+be prompted for a save location before the run starts.
+
 ### Optional GUI
 
 ```bash
@@ -113,6 +122,7 @@ Windows:
 pip install pyinstaller
 pyinstaller --onefile --windowed --name "Banana Tagger" gui.py
 ```
+
 ## Troubleshooting
 
 The tool gives a specific message for the most common setup mistakes,

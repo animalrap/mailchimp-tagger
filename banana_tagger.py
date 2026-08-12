@@ -36,6 +36,9 @@ USAGE:
   creating the tag or writing anything to Mailchimp:
   3. python banana_tagger.py players.csv "Fall Classic 2026" --dry-run
 
+  Add --export to save a results CSV (name, status, email):
+  4. python banana_tagger.py players.csv "Fall Classic 2026" --export results.csv
+
 The script will not guess on ambiguous matches (e.g. two "Mike Smith"s
 in your audience) -- it lists those separately so you can resolve them
 by hand rather than risk tagging the wrong contact.
@@ -177,13 +180,15 @@ def get_or_create_tag(tag_name):
     return resp.json()["id"]
 
 
-def run_tagging(csv_path, tag_name, log=print, dry_run=False):
+def run_tagging(csv_path, tag_name, log=print, dry_run=False, export_path=None):
     """
     Core workflow, factored out so both the CLI and a GUI can call it.
     `log` is a callable that receives each status line (defaults to
     print). When `dry_run` is True, matching runs normally but nothing
     is written to Mailchimp: no tag is created and no contacts are
-    added to it. Returns a dict summary: {tagged, ambiguous, unmatched}.
+    added to it. When `export_path` is given, a CSV with one row per
+    input name (name, status, email) is written there, regardless of
+    dry_run. Returns a dict summary: {tagged, ambiguous, unmatched}.
     In dry-run mode, `tagged` reflects how many *would* be tagged.
     """
     _, _, list_id, base, auth = _get_config()
@@ -199,13 +204,15 @@ def run_tagging(csv_path, tag_name, log=print, dry_run=False):
 
     if not requested_names:
         log("No names found in the CSV under the 'name' column. Nothing to do.")
+        if export_path:
+            _write_export(export_path, [], log=log)
         return {"tagged": 0, "ambiguous": [], "unmatched": []}
 
     log(f"Fetching audience from Mailchimp (list {list_id})...")
     members = fetch_all_members(log=log)
     log(f"Loaded {len(members)} unique names from {sum(len(v) for v in members.values())} contacts.\n")
 
-    matched_emails = []
+    matched = []  # list of (name, email)
     unmatched = []
     ambiguous = []
 
@@ -217,7 +224,9 @@ def run_tagging(csv_path, tag_name, log=print, dry_run=False):
         elif len(candidates) > 1:
             ambiguous.append((name, candidates))
         else:
-            matched_emails.append(candidates[0])
+            matched.append((name, candidates[0]))
+
+    matched_emails = [email for _, email in matched]
 
     tagged_count = 0
     if matched_emails:
@@ -255,7 +264,26 @@ def run_tagging(csv_path, tag_name, log=print, dry_run=False):
         for name in unmatched:
             log(f"  {name}")
 
+    if export_path:
+        tagged_status = "would tag (dry run)" if dry_run else "tagged"
+        rows = (
+            [(name, tagged_status, email) for name, email in matched]
+            + [(name, "ambiguous", ", ".join(emails)) for name, emails in ambiguous]
+            + [(name, "unmatched", "") for name in unmatched]
+        )
+        _write_export(export_path, rows, log=log)
+
     return {"tagged": tagged_count, "ambiguous": ambiguous, "unmatched": unmatched}
+
+
+def _write_export(export_path, rows, log=print):
+    """Write a results CSV with columns: name, status, email.
+    `rows` is a list of (name, status, email) tuples."""
+    with open(export_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["name", "status", "email"])
+        writer.writerows(rows)
+    log(f"\nResults exported to {export_path}")
 
 
 def main():
@@ -270,10 +298,21 @@ def main():
         action="store_true",
         help="Show what would be tagged without writing anything to Mailchimp",
     )
+    parser.add_argument(
+        "--export",
+        metavar="PATH",
+        help="Write a results CSV (name, status, email) to this path",
+    )
     args = parser.parse_args()
 
     try:
-        run_tagging(args.csv_path, args.tag_name, log=print, dry_run=args.dry_run)
+        run_tagging(
+            args.csv_path,
+            args.tag_name,
+            log=print,
+            dry_run=args.dry_run,
+            export_path=args.export,
+        )
     except EnvironmentError as e:
         print(f"Error: {e}")
         sys.exit(1)

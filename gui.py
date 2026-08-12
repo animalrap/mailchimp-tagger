@@ -5,7 +5,9 @@ Optional point-and-click front end for banana_tagger.py, built with
 tkinter (ships with Python on Windows/macOS -- no extra install needed).
 
 Includes a "Dry run" checkbox that previews matched/ambiguous/unmatched
-names without creating a tag or writing anything to Mailchimp.
+names without creating a tag or writing anything to Mailchimp, and an
+"Export results to CSV" checkbox that prompts for a save location and
+writes a results file (name, status, email) when the run finishes.
 
 SETUP (one time):
   1. pip install -r requirements.txt
@@ -44,6 +46,7 @@ class TaggerApp(tk.Tk):
         self.csv_path = tk.StringVar()
         self.tag_name = tk.StringVar()
         self.dry_run = tk.BooleanVar(value=False)
+        self.export_results = tk.BooleanVar(value=False)
         self.log_queue = queue.Queue()
         self.worker = None
 
@@ -76,6 +79,12 @@ class TaggerApp(tk.Tk):
             text="Dry run (preview matches, don't write anything to Mailchimp)",
             variable=self.dry_run,
             command=self._update_run_btn_label,
+        ).pack(fill="x", padx=12, anchor="w")
+
+        ttk.Checkbutton(
+            self,
+            text="Export results to CSV (name, status, email)",
+            variable=self.export_results,
         ).pack(fill="x", padx=12, anchor="w")
 
         btn_row = ttk.Frame(self)
@@ -135,18 +144,33 @@ class TaggerApp(tk.Tk):
             messagebox.showwarning("Missing info", "Please choose a CSV and enter a tag name.")
             return
 
+        export_path = None
+        if self.export_results.get():
+            export_path = filedialog.asksaveasfilename(
+                title="Save results as...",
+                defaultextension=".csv",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+                initialfile="results.csv",
+            )
+            if not export_path:
+                return  # user cancelled the save dialog; don't start the run
+
         self._clear_output()
         self.run_btn.state(["disabled"])
         self.progress.start(12)
 
         self.worker = threading.Thread(
-            target=self._run_worker, args=(csv_path, tag_name, self.dry_run.get()), daemon=True
+            target=self._run_worker,
+            args=(csv_path, tag_name, self.dry_run.get(), export_path),
+            daemon=True,
         )
         self.worker.start()
 
-    def _run_worker(self, csv_path, tag_name, dry_run):
+    def _run_worker(self, csv_path, tag_name, dry_run, export_path):
         try:
-            tagger.run_tagging(csv_path, tag_name, log=self.log_queue.put, dry_run=dry_run)
+            tagger.run_tagging(
+                csv_path, tag_name, log=self.log_queue.put, dry_run=dry_run, export_path=export_path
+            )
         except EnvironmentError as e:
             self.log_queue.put(f"Error: {e}")
         except FileNotFoundError:
