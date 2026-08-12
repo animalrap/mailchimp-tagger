@@ -10,6 +10,8 @@ waitlists, sign-up sheets, or check-in exports, and wants to tag those
 contacts for a segmented send without manually searching each name one
 at a time.
 
+I built this because manually tagging contacts was a huge pain point for me.
+
 ## How it works
 
 1. Pulls your full Mailchimp audience (name + email), handling
