@@ -29,11 +29,16 @@ USAGE:
      way it appears in Mailchimp. See sample_names.csv.
   2. python mailchimp_tagger.py players.csv "Fall Classic 2026"
 
+  Add --dry-run to see matched/ambiguous/unmatched counts without
+  creating the tag or writing anything to Mailchimp:
+  3. python mailchimp_tagger.py players.csv "Fall Classic 2026" --dry-run
+
 The script will not guess on ambiguous matches (e.g. two "Mike Smith"s
 in your audience) -- it lists those separately so you can resolve them
 by hand rather than risk tagging the wrong contact.
 """
 
+import argparse
 import csv
 import os
 import sys
@@ -115,11 +120,14 @@ def get_or_create_tag(tag_name):
     return resp.json()["id"]
 
 
-def run_tagging(csv_path, tag_name, log=print):
+def run_tagging(csv_path, tag_name, log=print, dry_run=False):
     """
     Core workflow, factored out so both the CLI and a GUI can call it.
     `log` is a callable that receives each status line (defaults to
-    print). Returns a dict summary: {tagged, ambiguous, unmatched}.
+    print). When `dry_run` is True, matching runs normally but nothing
+    is written to Mailchimp: no tag is created and no contacts are
+    added to it. Returns a dict summary: {tagged, ambiguous, unmatched}.
+    In dry-run mode, `tagged` reflects how many *would* be tagged.
     """
     _, _, list_id, base, auth = _get_config()
 
@@ -156,20 +164,27 @@ def run_tagging(csv_path, tag_name, log=print):
 
     tagged_count = 0
     if matched_emails:
-        tag_id = get_or_create_tag(tag_name)
-        resp = requests.post(
-            f"{base}/lists/{list_id}/segments/{tag_id}",
-            auth=auth,
-            json={"members_to_add": matched_emails},
-        )
-        resp.raise_for_status()
-        result = resp.json()
-        tagged_count = result.get("total_added", len(matched_emails))
-        log(f"Tagged {tagged_count} contacts with \"{tag_name}\".")
-        if result.get("errors"):
-            log("Some entries had errors:")
-            for err in result["errors"]:
-                log(f"  {err}")
+        if dry_run:
+            tagged_count = len(matched_emails)
+            log(
+                f"[DRY RUN] Would tag {tagged_count} contact(s) with "
+                f"\"{tag_name}\". Nothing was written to Mailchimp."
+            )
+        else:
+            tag_id = get_or_create_tag(tag_name)
+            resp = requests.post(
+                f"{base}/lists/{list_id}/segments/{tag_id}",
+                auth=auth,
+                json={"members_to_add": matched_emails},
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            tagged_count = result.get("total_added", len(matched_emails))
+            log(f"Tagged {tagged_count} contacts with \"{tag_name}\".")
+            if result.get("errors"):
+                log("Some entries had errors:")
+                for err in result["errors"]:
+                    log(f"  {err}")
     else:
         log("No confident matches found -- nothing was tagged.")
 
@@ -187,13 +202,21 @@ def run_tagging(csv_path, tag_name, log=print):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print('Usage: python mailchimp_tagger.py names.csv "Tag Name"')
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        prog="mailchimp_tagger.py",
+        description="Tag Mailchimp audience members by matching names from a CSV.",
+    )
+    parser.add_argument("csv_path", help="Path to a CSV with a 'name' column")
+    parser.add_argument("tag_name", help='Tag name to apply, e.g. "Fall Classic 2026"')
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be tagged without writing anything to Mailchimp",
+    )
+    args = parser.parse_args()
 
-    csv_path, tag_name = sys.argv[1], sys.argv[2]
     try:
-        run_tagging(csv_path, tag_name, log=print)
+        run_tagging(args.csv_path, args.tag_name, log=print, dry_run=args.dry_run)
     except EnvironmentError as e:
         print(f"Error: {e}")
         sys.exit(1)

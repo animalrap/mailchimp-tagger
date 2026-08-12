@@ -4,6 +4,9 @@ gui.py
 Optional point-and-click front end for mailchimp_tagger.py, built with
 tkinter (ships with Python on Windows/macOS -- no extra install needed).
 
+Includes a "Dry run" checkbox that previews matched/ambiguous/unmatched
+names without creating a tag or writing anything to Mailchimp.
+
 SETUP (one time):
   1. pip install -r requirements.txt
   2. Set MAILCHIMP_API_KEY, MAILCHIMP_SERVER, and MAILCHIMP_LIST_ID as
@@ -40,6 +43,7 @@ class TaggerApp(tk.Tk):
 
         self.csv_path = tk.StringVar()
         self.tag_name = tk.StringVar()
+        self.dry_run = tk.BooleanVar(value=False)
         self.log_queue = queue.Queue()
         self.worker = None
 
@@ -66,6 +70,13 @@ class TaggerApp(tk.Tk):
 
         self.env_status = ttk.Label(self, text="", foreground="#555555")
         self.env_status.pack(fill="x", padx=12)
+
+        ttk.Checkbutton(
+            self,
+            text="Dry run (preview matches, don't write anything to Mailchimp)",
+            variable=self.dry_run,
+            command=self._update_run_btn_label,
+        ).pack(fill="x", padx=12, anchor="w")
 
         btn_row = ttk.Frame(self)
         btn_row.pack(fill="x", padx=12, pady=8)
@@ -95,6 +106,9 @@ class TaggerApp(tk.Tk):
             self.run_btn.state(["disabled"])
         else:
             self.env_status.configure(text="Mailchimp credentials found.", foreground="#2a7050")
+
+    def _update_run_btn_label(self):
+        self.run_btn.configure(text="Preview (Dry Run)" if self.dry_run.get() else "Run Tagging")
 
     def _pick_csv(self):
         path = filedialog.askopenfilename(
@@ -126,13 +140,13 @@ class TaggerApp(tk.Tk):
         self.progress.start(12)
 
         self.worker = threading.Thread(
-            target=self._run_worker, args=(csv_path, tag_name), daemon=True
+            target=self._run_worker, args=(csv_path, tag_name, self.dry_run.get()), daemon=True
         )
         self.worker.start()
 
-    def _run_worker(self, csv_path, tag_name):
+    def _run_worker(self, csv_path, tag_name, dry_run):
         try:
-            tagger.run_tagging(csv_path, tag_name, log=self.log_queue.put)
+            tagger.run_tagging(csv_path, tag_name, log=self.log_queue.put, dry_run=dry_run)
         except Exception as e:  # surfaced to the user via the log pane
             self.log_queue.put(f"Error: {e}")
         finally:
