@@ -1,12 +1,14 @@
 # Mailchimp Audience Tagger
 
-A command-line tool (with an optional GUI) for tagging Mailchimp audience members from a CSV that has names only, no email addresses.
+A small command-line tool (with an optional point-and-click GUI) for
+tagging Mailchimp audience members by matching full names from a plain
+CSV list against your existing audience.
 
-Mailchimp's own CSV import can tag contacts, but only by matching on email. This tool exists for the opposite case: you have a list of full names from somewhere that was never tied to Mailchimp in the first place (an event roster, a sign-in sheet, a waitlist a front desk kept by hand) and you need those people tagged in your existing audience without typing each name into search one at a time.
-
-If your source list already has emails, you don't need this, use Mailchimp's native import instead. This tool is specifically for when all you have is a name.
-
-I built this because manually tagging contacts without emails attached to names was a huge pain point for me.
+Useful for anyone who regularly gets name-only rosters from a system
+that isn't synced to Mailchimp, such as event registration lists,
+waitlists, sign-up sheets, or check-in exports, and wants to tag those
+contacts for a segmented send without manually searching each name one
+at a time.
 
 ## How it works
 
@@ -73,6 +75,19 @@ Redirect output to a file if you want a saved record:
 ```bash
 python mailchimp_tagger.py names.csv "Fall Classic 2026" > results.txt
 ```
+
+### Preview before tagging (dry run)
+
+Add `--dry-run` to see the matched, ambiguous, and unmatched counts
+without creating the tag or writing anything to Mailchimp. Useful for
+checking a new CSV before it touches your live audience:
+
+```bash
+python mailchimp_tagger.py names.csv "Fall Classic 2026" --dry-run
+```
+
+In the GUI, check the "Dry run" box before clicking Run, the button
+relabels to **Preview (Dry Run)** so it's clear nothing will be written.
 
 ### Optional GUI
 
