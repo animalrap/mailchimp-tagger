@@ -10,7 +10,7 @@ waitlists, sign-up sheets, or check-in exports, and wants to tag those
 contacts for a segmented send without manually searching each name one
 at a time.
 
-I built this because manually tagging contacts was a huge pain point for me.
+I built this because manually tagging contacts without emails attached to names was a huge pain point for me.
 
 ## How it works
 
