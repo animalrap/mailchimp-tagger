@@ -1,7 +1,7 @@
 """
 gui.py
 
-Optional point-and-click front end for mailchimp_tagger.py, built with
+Optional point-and-click front end for banana_tagger.py, built with
 tkinter (ships with Python on Windows/macOS -- no extra install needed).
 
 Includes a "Dry run" checkbox that previews matched/ambiguous/unmatched
@@ -11,14 +11,14 @@ SETUP (one time):
   1. pip install -r requirements.txt
   2. Set MAILCHIMP_API_KEY, MAILCHIMP_SERVER, and MAILCHIMP_LIST_ID as
      environment variables (see README.md).
-  3. Keep this file in the same folder as mailchimp_tagger.py.
+  3. Keep this file in the same folder as banana_tagger.py.
 
 RUN:
   python gui.py
 
 To ship a double-clickable app with no visible terminal (Windows):
   pip install pyinstaller
-  pyinstaller --onefile --windowed --name "Mailchimp Tagger" gui.py
+  pyinstaller --onefile --windowed --name "Banana Tagger" gui.py
 This produces a standalone .exe in dist/. Mailchimp credentials still
 need to be set as environment variables on whatever machine runs it.
 """
@@ -29,7 +29,7 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-import mailchimp_tagger as tagger
+import banana_tagger as tagger
 
 REQUIRED_VARS = ("MAILCHIMP_API_KEY", "MAILCHIMP_SERVER", "MAILCHIMP_LIST_ID")
 
@@ -37,7 +37,7 @@ REQUIRED_VARS = ("MAILCHIMP_API_KEY", "MAILCHIMP_SERVER", "MAILCHIMP_LIST_ID")
 class TaggerApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Mailchimp Audience Tagger")
+        self.title("Banana Tagger")
         self.geometry("640x520")
         self.minsize(560, 420)
 

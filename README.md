@@ -1,10 +1,19 @@
-# Mailchimp Audience Tagger
+# Banana Tagger
 
-A command-line tool (with an optional GUI) for tagging Mailchimp audience members from a CSV that has names only, no email addresses.
+A command-line tool (with an optional GUI) for tagging Mailchimp
+audience members from a CSV that has **names only, no email
+addresses**.
 
-Mailchimp's own CSV import can tag contacts, but only by matching on email. This tool exists for the opposite case: you have a list of full names from somewhere that was never tied to Mailchimp in the first place (an event roster, a sign-in sheet, a waitlist a front desk kept by hand) and you need those people tagged in your existing audience without typing each name into search one at a time.
+Mailchimp's own CSV import can tag contacts, but only by matching on
+email. This tool exists for the opposite case: you have a list of full
+names from somewhere that was never tied to Mailchimp in the first
+place (an event roster, a sign-in sheet, a waitlist a front desk kept
+by hand) and you need those people tagged in your existing audience
+without typing each name into search one at a time.
 
-If your source list already has emails, you don't need this, use Mailchimp's native import instead. This tool is specifically for when all you have is a name.
+If your source list already has emails, you don't need this, use
+Mailchimp's native import instead. This tool is specifically for when
+all you have is a name.
 
 ## How it works
 
@@ -26,8 +35,8 @@ risking a tag on the wrong contact.
 ## Setup
 
 ```bash
-git clone https://github.com/animalrap/mailchimp-audience-tagger.git
-cd mailchimp-audience-tagger
+git clone https://github.com/animalrap/banana-tagger.git
+cd banana-tagger
 pip install -r requirements.txt
 ```
 
@@ -63,13 +72,13 @@ full name per row formatted the same way it appears in Mailchimp
 ("First Last"). See `sample_names.csv`.
 
 ```bash
-python mailchimp_tagger.py names.csv "Fall Classic 2026"
+python banana_tagger.py names.csv "Fall Classic 2026"
 ```
 
 Redirect output to a file if you want a saved record:
 
 ```bash
-python mailchimp_tagger.py names.csv "Fall Classic 2026" > results.txt
+python banana_tagger.py names.csv "Fall Classic 2026" > results.txt
 ```
 
 ### Preview before tagging (dry run)
@@ -79,7 +88,7 @@ without creating the tag or writing anything to Mailchimp. Useful for
 checking a new CSV before it touches your live audience:
 
 ```bash
-python mailchimp_tagger.py names.csv "Fall Classic 2026" --dry-run
+python banana_tagger.py names.csv "Fall Classic 2026" --dry-run
 ```
 
 In the GUI, check the "Dry run" box before clicking Run, the button
@@ -98,7 +107,7 @@ Windows:
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name "Mailchimp Tagger" gui.py
+pyinstaller --onefile --windowed --name "Banana Tagger" gui.py
 ```
 
 ## Limitations
