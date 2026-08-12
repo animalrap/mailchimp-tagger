@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+results.txt
+*.csv
+!sample_names.csv
